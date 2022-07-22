@@ -39,10 +39,10 @@ function cartDisplay(i) {
         document.getElementById("totalPrice").innerHTML = "0";
         document.querySelector("h1").innerHTML = "Vous n'avez aucun article dans votre panier";
     }
-    console.log(" 1: ");
+    // console.log(" 1: ");
     quantityAdjuster();
     supprProduct();
-    console.log(" 99: ");
+    // console.log(" 99: ");
 
 }
 // fonction pour rentrer plusieurs attributs
@@ -62,7 +62,7 @@ function affichage(panier) {
         article.innerHTML = getCartTmpl(index);
         section.appendChild(article);
     }
-    
+
 }
 
 
@@ -120,4 +120,195 @@ function supprProduct() {
         });
     });
 
+}
+
+//partie formulaire
+
+// regex pour les lettres
+let regLetters = /^[a-záàâäãåçéèêëíìîïñóòôöõúùûüýÿæœ\s-]{1,31}$/i;
+// regex pour les lettres et les chiffres
+let regLettersNumbers = /^[a-z0-9áàâäãåçéèêëíìîïñóòôöõúùûüýÿæœ\s-]{1,60}$/i;
+// regex pour les emails
+let regValidMail = /^[a-z0-9æœ.!#$%&’*+/=?^_`{|}~"(),:;<>@[\]-]{1,60}$/i;
+let regValidMailOrder = /^[a-zA-Z0-9æœ.!#$%&’*+/=?^_`{|}~"(),:;<>@[\]-]+@([\w-]+\.)+[\w-]{2,4}$/i;
+
+var infoClient = {};
+localStorage.infoClient = JSON.stringify(infoClient);
+
+var prenom = document.getElementById("firstName");
+prenom.classList.add("regex_texte");
+
+var nom = document.getElementById("lastName");
+nom.classList.add("regex_texte");
+
+var ville = document.getElementById("city");
+ville.classList.add("regex_texte");
+
+var adresse = document.getElementById("address");
+adresse.classList.add("regex_adresse");
+
+var email = document.getElementById("email");
+email.classList.add("regex_email");
+
+var regexTexte = document.querySelectorAll(".regex_texte");
+document.getElementById("email").setAttribute("type", "text");
+
+
+regexTexte.forEach((regexTexte) =>
+    regexTexte.addEventListener("input", (event) => {
+        let input = event.target.value;
+        let regNormal = input.search(regLetters);
+        if (regNormal === 0) {
+            infoClient.firstName = prenom.value;
+            infoClient.lastName = nom.value;
+            infoClient.city = ville.value;
+        }
+        if (infoClient.firstName !== "" && infoClient.lastName !== "" && infoClient.city !== "" && regNormal === 0) {
+            infoClient.resLetters = 1;
+        } else {
+            infoClient.resLetters = 0;
+        }
+        localStorage.infoClient = JSON.stringify(infoClient);
+        orderChecker();
+        console.log("infoClient.firstName : " + infoClient.firstName);
+    })
+);
+testAnswer(regLetters, "#firstNameErrorMsg", prenom);
+testAnswer(regLetters, "#lastNameErrorMsg", nom);
+testAnswer(regLetters, "#cityErrorMsg", ville);
+
+let resAdresse = document.querySelector(".regex_adresse");
+resAdresse.addEventListener("input", (event) => {
+    let input = event.target.value;
+    let regAdresse = input.search(regLettersNumbers);
+    if (regAdresse == 0) {
+        infoClient.address = adresse.value;
+    }
+    if (infoClient.address !== "" && regAdresse === 0) {
+        infoClient.resAdresse = 1;
+    } else {
+        infoClient.resAdresse = 0;
+    }
+    localStorage.infoClient = JSON.stringify(infoClient);
+    orderChecker();
+});
+testAnswer(regLettersNumbers, "#addressErrorMsg", adresse);
+
+let resEmail = document.querySelector(".regex_email");
+resEmail.addEventListener("input", (input) => {
+    let res = input.target.value;
+    let regValid = res.search(regValidMail);
+    let regMatch = res.match(regValidMailOrder);
+    if (regValid === 0 && regMatch !== null) {
+        infoClient.email = email.value;
+        infoClient.resEmail = 1;
+    } else {
+        infoClient.resEmail = 0;
+    }
+    localStorage.infoClient = JSON.stringify(infoClient);
+    orderChecker();
+});
+
+email.addEventListener("input", (input) => {
+    let res = input.target.value;
+    let regMatch = res.match(regValidMailOrder);
+    let regValid = res.search(regValidMail);
+    if (res === "" && regMatch === null) {
+        document.getElementById("emailErrorMsg").innerHTML = "Champ vide, veuillez renseigner votre email.";
+        document.getElementById("emailErrorMsg").style.color = "white";
+    } else if (regValid !== 0) {
+        document.getElementById("emailErrorMsg").innerHTML = "Caractères invalide.";
+        document.getElementById("emailErrorMsg").style.color = "white";
+    } else if (res != "" && regMatch == null) {
+        document.getElementById("emailErrorMsg").innerHTML = "Erreur, veuillez ressaisir votre email.";
+        document.getElementById("emailErrorMsg").style.color = "white";
+    } else {
+        document.getElementById("emailErrorMsg").innerHTML = "Email correct.";
+        document.getElementById("emailErrorMsg").style.color = "white";
+    }
+});
+
+function testAnswer(regex, balise, listener) {
+    listener.addEventListener("input", (input) => {
+        let res = input.target.value;
+        let index = res.search(regex);
+        // console.log("index :" + index);
+        if (res === "" && index != 0) {
+            document.querySelector(balise).innerHTML = "Champ vide, veuillez le renseigner.";
+            document.querySelector(balise).style.color = "white";
+        } else if (res !== "" && index != 0) {
+            document.querySelector(balise).innerHTML = "Données invalides.";
+            document.querySelector(balise).style.color = "white";
+        } else {
+            document.querySelector(balise).innerHTML = "Données valides.";
+            document.querySelector(balise).style.color = "white";
+        }
+    });
+}
+
+// order = btn commander
+let order = document.getElementById("order");
+function orderChecker() {
+    let infoClientStorage = JSON.parse(localStorage.getItem("infoClient"));
+    let sum = infoClientStorage.resLetters + infoClientStorage.resAdresse + infoClientStorage.resEmail;
+    if (sum === 3) {
+        order.removeAttribute("disabled", "disabled");
+        document.getElementById("order").setAttribute("value", "Commander !");
+    } else {
+        order.setAttribute("disabled", "disabled");
+        document.getElementById("order").setAttribute("value", "Remplir le formulaire");
+    }
+}
+
+order.addEventListener("click", (click) => {
+    click.preventDefault();
+    orderChecker();
+    postDispatch();
+});
+
+
+function postDispatch() {
+    let productsID = [];
+    let panier = JSON.parse(localStorage.getItem("userCart"));
+    if (panier && panier.length > 0) {
+        for (let i of panier) {
+            productsID.push(i._id);
+        }
+    } else {
+        document.getElementById("order").setAttribute("value", "Votre panier est vide.");
+    }
+    let infoClientStorage;
+    infoClientStorage = JSON.parse(localStorage.getItem("infoClient"));
+    let orderObj = {
+        contact: {
+            firstName: infoClientStorage.firstName,
+            lastName: infoClientStorage.lastName,
+            address: infoClientStorage.address,
+            city: infoClientStorage.city,
+            email: infoClientStorage.email,
+        },
+        products: productsID,
+    };
+    let sum = infoClientStorage.resLetters + infoClientStorage.resAdresse + infoClientStorage.resEmail;
+    if (sum === 3 && productsID.length > 0) {
+        fetch("http://localhost:3000/api/products/order", {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(orderObj),
+        })
+            .then(function (res) {
+                if (res.ok) {
+                    return res.json();
+                }
+            })
+            .then(function(data) {
+                return window.location.href = `/front/html/confirmation.html?order=${data.orderId}`;
+            })
+            .catch(function (err) {
+                // Une erreur est survenue
+            });
+    }
 }
