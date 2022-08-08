@@ -1,31 +1,22 @@
-import getCartTmpl from './tmpl/tmplCart.js';
+import getCartTmpl from "./tmpl/tmplCart.js";
 
-fetch("http://localhost:3000/api/products")
-    .then(function (res) {
-        if (res.ok) {
-            return res.json();
-        }
-    })
-    .then((APIproduct) => {
-        //appel de la fonction products
-        cartDisplay(APIproduct);
-    })
-    .catch((err) => {
-        // Une erreur est survenue
-    });
+let products = [];
+const productsRes = await fetch("http://localhost:3000/api/products");
+products = productsRes.ok ? await productsRes.json() : [];
+cartDisplay(products);
 
 // eviter le reload avec une fonction affichage propre
-function cartDisplay(i) {
+function cartDisplay(product) {
     let panier = JSON.parse(localStorage.getItem("userCart"));
     if (panier && panier.length > 0) {
         for (let j of panier) {
-            for (let g = 0; g < i.length; g++) {
-                if (j._id === i[g]._id) {
-                    j.name = i[g].name;
-                    j.price = i[g].price;
-                    j.image = i[g].imageUrl;
-                    j.description = i[g].description;
-                    j.alt = i[g].altTxt;
+            for (let g = 0; g < product.length; g++) {
+                if (j._id === product[g]._id) {
+                    j.name = product[g].name;
+                    j.price = product[g].price;
+                    j.image = product[g].imageUrl;
+                    j.description = product[g].description;
+                    j.alt = product[g].altTxt;
                 }
             }
         }
@@ -35,6 +26,7 @@ function cartDisplay(i) {
         priceQuantityProducts();
         // console.log("Panier 99: ",panier);
     } else {
+        document.getElementById("cart__items").innerHTML = "";
         document.getElementById("totalQuantity").innerHTML = "0";
         document.getElementById("totalPrice").innerHTML = "0";
         document.querySelector("h1").innerHTML = "Vous n'avez aucun article dans votre panier";
@@ -43,7 +35,6 @@ function cartDisplay(i) {
     quantityAdjuster();
     supprProduct();
     // console.log(" 99: ");
-
 }
 // fonction pour rentrer plusieurs attributs
 function setAttributes(el, attrs) {
@@ -53,18 +44,19 @@ function setAttributes(el, attrs) {
 }
 function affichage(panier) {
     let section = document.getElementById("cart__items");
+    section.innerHTML = "";
     for (let index of panier) {
         const article = document.createElement("article");
         setAttributes(article, {
-            "class": "cart__item", "data-id": `${index._id}`,
-            "data-couleur": `${index.color}`, "data-quantité": `${index.quantity}`
+            class: "cart__item",
+            "data-id": `${index._id}`,
+            "data-couleur": `${index.color}`,
+            "data-quantité": `${index.quantity}`,
         });
         article.innerHTML = getCartTmpl(index);
         section.appendChild(article);
     }
-
 }
-
 
 function priceQuantityProducts() {
     let quantityProducts = 0;
@@ -72,7 +64,7 @@ function priceQuantityProducts() {
     let panier = JSON.parse(localStorage.getItem("userCart"));
     for (let product of panier) {
         quantityProducts += JSON.parse(product.quantity);
-        price += JSON.parse(product.quantity) * JSON.parse(product.price);;
+        price += JSON.parse(product.quantity) * JSON.parse(product.price);
     }
     document.getElementById("totalQuantity").textContent = quantityProducts;
     document.getElementById("totalPrice").textContent = price;
@@ -87,7 +79,10 @@ function quantityAdjuster() {
             // console.log("Panier 1:", panier);
             for (let product of panier) {
                 // console.log("Panier 2:", event.target.value, product.color, cart.dataset.couleur);
-                if (product._id === cart.dataset.id && cart.dataset.couleur === product.color) {
+                if (
+                    product._id === cart.dataset.id &&
+                    cart.dataset.couleur === product.color
+                ) {
                     product.quantity = event.target.value;
                     localStorage.userCart = JSON.stringify(panier);
                     priceQuantityProducts();
@@ -97,29 +92,21 @@ function quantityAdjuster() {
     });
 }
 
-// fonction qui supprime un produit du panier et met le panier à jour + reload pour l'affichage
+// fonction qui supprime un produit du panier et met le panier à jour
 function supprProduct() {
-    // QUESTION : Element.closest() ??
     const deleteItem = document.querySelectorAll(".cart__item .deleteItem");
     deleteItem.forEach((deleteItem) => {
         deleteItem.addEventListener("click", () => {
             let panier = JSON.parse(localStorage.getItem("userCart"));
-            for (let i = 0; i < panier.length; i++) {
-                if (panier[i]._id === deleteItem.dataset.id && panier[i].color === deleteItem.dataset.couleur) {
-                    let panierFinal = JSON.parse(localStorage.getItem("userCart"));
-                    panierFinal.splice(i, 1);
-                    if (panierFinal && panierFinal.length == 0) {
-                        document.getElementById("totalQuantity").innerHTML = "0";
-                        document.getElementById("totalPrice").innerHTML = "0";
-                        document.querySelector("h1").innerHTML = "Vous n'avez aucun article dans votre panier";
-                    }
-                    localStorage.userCart = JSON.stringify(panierFinal);
-                    priceQuantityProducts();
-                }
-            }
+            panier = panier.filter(
+                (el) =>
+                    el._id !== deleteItem.dataset.id &&
+                    el.color !== deleteItem.dataset.couleur
+            );
+            localStorage.userCart = JSON.stringify(panier);
+            cartDisplay(products);
         });
     });
-
 }
 
 //partie formulaire
@@ -130,7 +117,8 @@ let regLetters = /^[a-záàâäãåçéèêëíìîïñóòôöõúùûüýÿæ�
 let regLettersNumbers = /^[a-z0-9áàâäãåçéèêëíìîïñóòôöõúùûüýÿæœ\s-]{1,60}$/i;
 // regex pour les emails
 let regValidMail = /^[a-z0-9æœ.!#$%&’*+/=?^_`{|}~"(),:;<>@[\]-]{1,60}$/i;
-let regValidMailOrder = /^[a-zA-Z0-9æœ.!#$%&’*+/=?^_`{|}~"(),:;<>@[\]-]+@([\w-]+\.)+[\w-]{2,4}$/i;
+let regValidMailOrder =
+    /^[a-zA-Z0-9æœ.!#$%&’*+/=?^_`{|}~"(),:;<>@[\]-]+@([\w-]+\.)+[\w-]{2,4}$/i;
 
 var infoClient = {};
 localStorage.infoClient = JSON.stringify(infoClient);
@@ -153,7 +141,6 @@ email.classList.add("regex_email");
 var regexTexte = document.querySelectorAll(".regex_texte");
 document.getElementById("email").setAttribute("type", "text");
 
-
 regexTexte.forEach((regexTexte) =>
     regexTexte.addEventListener("input", (event) => {
         let input = event.target.value;
@@ -163,7 +150,12 @@ regexTexte.forEach((regexTexte) =>
             infoClient.lastName = nom.value;
             infoClient.city = ville.value;
         }
-        if (infoClient.firstName !== "" && infoClient.lastName !== "" && infoClient.city !== "" && regNormal === 0) {
+        if (
+            infoClient.firstName !== "" &&
+            infoClient.lastName !== "" &&
+            infoClient.city !== "" &&
+            regNormal === 0
+        ) {
             infoClient.resLetters = 1;
         } else {
             infoClient.resLetters = 0;
@@ -214,13 +206,15 @@ email.addEventListener("input", (input) => {
     let regMatch = res.match(regValidMailOrder);
     let regValid = res.search(regValidMail);
     if (res === "" && regMatch === null) {
-        document.getElementById("emailErrorMsg").innerHTML = "Champ vide, veuillez renseigner votre email.";
+        document.getElementById("emailErrorMsg").innerHTML =
+            "Champ vide, veuillez renseigner votre email.";
         document.getElementById("emailErrorMsg").style.color = "white";
     } else if (regValid !== 0) {
         document.getElementById("emailErrorMsg").innerHTML = "Caractères invalide.";
         document.getElementById("emailErrorMsg").style.color = "white";
     } else if (res != "" && regMatch == null) {
-        document.getElementById("emailErrorMsg").innerHTML = "Erreur, veuillez ressaisir votre email.";
+        document.getElementById("emailErrorMsg").innerHTML =
+            "Erreur, veuillez ressaisir votre email.";
         document.getElementById("emailErrorMsg").style.color = "white";
     } else {
         document.getElementById("emailErrorMsg").innerHTML = "Email correct.";
@@ -234,7 +228,8 @@ function testAnswer(regex, balise, listener) {
         let index = res.search(regex);
         // console.log("index :" + index);
         if (res === "" && index != 0) {
-            document.querySelector(balise).innerHTML = "Champ vide, veuillez le renseigner.";
+            document.querySelector(balise).innerHTML =
+                "Champ vide, veuillez le renseigner.";
             document.querySelector(balise).style.color = "white";
         } else if (res !== "" && index != 0) {
             document.querySelector(balise).innerHTML = "Données invalides.";
@@ -250,13 +245,18 @@ function testAnswer(regex, balise, listener) {
 let order = document.getElementById("order");
 function orderChecker() {
     let infoClientStorage = JSON.parse(localStorage.getItem("infoClient"));
-    let sum = infoClientStorage.resLetters + infoClientStorage.resAdresse + infoClientStorage.resEmail;
+    let sum =
+        infoClientStorage.resLetters +
+        infoClientStorage.resAdresse +
+        infoClientStorage.resEmail;
     if (sum === 3) {
         order.removeAttribute("disabled", "disabled");
         document.getElementById("order").setAttribute("value", "Commander !");
     } else {
         order.setAttribute("disabled", "disabled");
-        document.getElementById("order").setAttribute("value", "Remplir le formulaire");
+        document
+            .getElementById("order")
+            .setAttribute("value", "Remplir le formulaire");
     }
 }
 
@@ -266,7 +266,6 @@ order.addEventListener("click", (click) => {
     postDispatch();
 });
 
-
 function postDispatch() {
     let productsID = [];
     let panier = JSON.parse(localStorage.getItem("userCart"));
@@ -275,7 +274,9 @@ function postDispatch() {
             productsID.push(i._id);
         }
     } else {
-        document.getElementById("order").setAttribute("value", "Votre panier est vide.");
+        document
+            .getElementById("order")
+            .setAttribute("value", "Votre panier est vide.");
     }
     let infoClientStorage;
     infoClientStorage = JSON.parse(localStorage.getItem("infoClient"));
@@ -289,7 +290,10 @@ function postDispatch() {
         },
         products: productsID,
     };
-    let sum = infoClientStorage.resLetters + infoClientStorage.resAdresse + infoClientStorage.resEmail;
+    let sum =
+        infoClientStorage.resLetters +
+        infoClientStorage.resAdresse +
+        infoClientStorage.resEmail;
     if (sum === 3 && productsID.length > 0) {
         fetch("http://localhost:3000/api/products/order", {
             method: "POST",
@@ -304,8 +308,8 @@ function postDispatch() {
                     return res.json();
                 }
             })
-            .then(function(data) {
-                return window.location.href = `/front/html/confirmation.html?order=${data.orderId}`;
+            .then(function (data) {
+                return (window.location.href = `/front/html/confirmation.html?order=${data.orderId}`);
             })
             .catch(function (err) {
                 // Une erreur est survenue
